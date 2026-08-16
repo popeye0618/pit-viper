@@ -14,73 +14,57 @@ class DiscountPolicyTest {
     private final DiscountPolicy policy = new DiscountPolicy();
 
     @Test
-    void 회원은_등급_할인을_받는다() {
-        Customer customer = Customer.member("c1", Grade.GOLD);
-
-        double rate = policy.rateFor(customer, Money.of(10_000));
-
-        assertThat(rate).isPositive();
+    @DisplayName("비회원은 등급 할인을 받지 못한다")
+    void guestGetsNoGradeBonus() {
+        assertThat(policy.rateFor(Customer.guest("g1"), Money.of(10_000))).isEqualTo(0.0);
     }
 
     @Test
-    void 비회원은_등급_할인을_받지_못한다() {
-        Customer guest = Customer.guest("g1");
-
-        double rate = policy.rateFor(guest, Money.of(10_000));
-
-        assertThat(rate).isZero();
-    }
-
-    @Test
-    void 큰_주문은_추가_할인을_받는다() {
-        Customer guest = Customer.guest("g1");
-
-        double rate = policy.rateFor(guest, Money.of(200_000));
-
-        assertThat(rate).isPositive();
-    }
-
-    @Test
-    void 할인_금액을_계산한다() {
-        Customer customer = Customer.member("c1", Grade.SILVER);
-
-        Money discount = policy.discountFor(customer, Money.of(10_000));
-
-        assertThat(discount.amount()).isPositive();
-    }
-
-    @Test
-    void 등급_보너스가_할인율에_그대로_반영된다() {
+    @DisplayName("회원은 등급 보너스만큼 할인받는다")
+    void memberGetsGradeBonus() {
         assertThat(policy.rateFor(Customer.member("c1", Grade.SILVER), Money.of(10_000)))
-                .isEqualTo(Grade.SILVER.getBonusRate());
+                .isEqualTo(0.05);
         assertThat(policy.rateFor(Customer.member("c2", Grade.GOLD), Money.of(10_000)))
-                .isEqualTo(Grade.GOLD.getBonusRate());
+                .isEqualTo(0.10);
     }
 
     @Test
-    void 큰_주문_보너스와_등급_보너스는_합산된다() {
-        Customer gold = Customer.member("c1", Grade.GOLD);
-
-        double rate = policy.rateFor(gold, Money.of(200_000));
-
-        assertThat(rate).isEqualTo(DiscountPolicy.LARGE_ORDER_BONUS + Grade.GOLD.getBonusRate());
-    }
-
-    @Test
-    void 합산한_할인율이_상한을_넘으면_상한으로_자른다() {
-        Customer vip = Customer.member("c1", Grade.VIP);
-
-        double rate = policy.rateFor(vip, Money.of(200_000));
-
-        assertThat(rate).isEqualTo(DiscountPolicy.MAX_RATE);
-    }
-
-    @Test
-    void 큰_주문_기준과_같은_금액은_추가_할인을_받지_못한다() {
+    @DisplayName("큰 주문 보너스는 기준을 넘어야 붙고 기준과 같으면 안 붙는다")
+    void largeOrderBonusNeedsStrictlyMore() {
         Customer guest = Customer.guest("g1");
 
-        double rate = policy.rateFor(guest, DiscountPolicy.LARGE_ORDER_THRESHOLD);
+        assertThat(policy.rateFor(guest, DiscountPolicy.LARGE_ORDER_THRESHOLD)).isEqualTo(0.0);
+        assertThat(policy.rateFor(guest, Money.of(200_000))).isEqualTo(0.10);
+    }
 
-        assertThat(rate).isZero();
+    @Test
+    @DisplayName("등급 보너스와 큰 주문 보너스는 합산된다")
+    void bonusesAccumulate() {
+        assertThat(policy.rateFor(Customer.member("c1", Grade.GOLD), Money.of(200_000)))
+                .isEqualTo(0.20);
+    }
+
+    @Test
+    @DisplayName("합산 할인율이 상한을 넘으면 상한으로 자른다")
+    void capsAtMaxRate() {
+        // VIP 0.20 + 큰 주문 0.10 = 0.30 이지만 상한은 0.25
+        assertThat(policy.rateFor(Customer.member("c1", Grade.VIP), Money.of(200_000)))
+                .isEqualTo(0.25);
+    }
+
+    @Test
+    @DisplayName("할인 금액은 주문 금액에 할인율을 적용한 값이다")
+    void discountAppliesRateToOrderAmount() {
+        // SILVER 5% of 10_000
+        assertThat(policy.discountFor(Customer.member("c1", Grade.SILVER), Money.of(10_000)))
+                .isEqualTo(Money.of(500));
+    }
+
+    @Test
+    @DisplayName("할인 정책값이 정해진 대로 꽂혀 있다")
+    void pinsPolicyConstants() {
+        assertThat(DiscountPolicy.LARGE_ORDER_THRESHOLD).isEqualTo(Money.of(100_000));
+        assertThat(DiscountPolicy.LARGE_ORDER_BONUS).isEqualTo(0.10);
+        assertThat(DiscountPolicy.MAX_RATE).isEqualTo(0.25);
     }
 }

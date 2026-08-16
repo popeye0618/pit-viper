@@ -9,22 +9,30 @@ import org.junit.jupiter.api.Test;
 class GradeTest {
 
     @Test
-    void 같은_등급도_이상으로_본다() {
+    @DisplayName("같은 등급도 이상으로 본다")
+    void treatsSameGradeAsAtLeast() {
         assertThat(Grade.GOLD.isAtLeast(Grade.GOLD)).isTrue();
     }
 
     @Test
-    void 높은_등급은_낮은_등급_이상이다() {
+    @DisplayName("서열이 높으면 이상이고 낮으면 미만이다")
+    void comparesByRank() {
         assertThat(Grade.VIP.isAtLeast(Grade.BRONZE)).isTrue();
-    }
-
-    @Test
-    void 낮은_등급은_높은_등급_이상이_아니다() {
         assertThat(Grade.SILVER.isAtLeast(Grade.GOLD)).isFalse();
     }
 
     @Test
-    void 등급마다_보너스_할인율이_다르다() {
+    @DisplayName("등급 서열은 BRONZE·SILVER·GOLD·VIP 순이다")
+    void pinsRankOrder() {
+        // isAtLeast 가 선언 순서를 서열로 쓴다. 순서가 바뀌면 비교의 의미가 조용히 달라진다.
+        assertThat(Grade.values())
+                .containsExactly(Grade.BRONZE, Grade.SILVER, Grade.GOLD, Grade.VIP);
+    }
+
+    @Test
+    @DisplayName("등급별 보너스 할인율이 정책값대로 꽂혀 있다")
+    void pinsBonusRates() {
+        // 상수에 꽂힌 데이터에는 뮤테이션 신호가 닿지 않는다 — 값을 직접 고정해 둔다.
         assertThat(Grade.BRONZE.getBonusRate()).isEqualTo(0.0);
         assertThat(Grade.SILVER.getBonusRate()).isEqualTo(0.05);
         assertThat(Grade.GOLD.getBonusRate()).isEqualTo(0.10);

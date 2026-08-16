@@ -12,41 +12,39 @@ class ShippingCalculatorTest {
     private final ShippingCalculator calculator = new ShippingCalculator();
 
     @Test
-    void 기준_금액을_넘으면_무료배송이다() {
-        Money fee = calculator.feeFor(Money.of(100_000), false);
-
-        assertThat(fee.amount()).isZero();
+    @DisplayName("무료배송 기준을 넘으면 배송비가 면제된다")
+    void waivesFeeAboveThreshold() {
+        assertThat(calculator.feeFor(Money.of(100_000), false)).isEqualTo(Money.ZERO);
     }
 
     @Test
-    void 기준_금액에_못_미치면_배송비가_붙는다() {
-        Money fee = calculator.feeFor(Money.of(10_000), false);
-
-        assertThat(fee.amount()).isPositive();
+    @DisplayName("기준과 같은 금액은 면제 대상이 아니다")
+    void chargesFeeAtThreshold() {
+        assertThat(calculator.feeFor(ShippingCalculator.FREE_THRESHOLD, false))
+                .isEqualTo(ShippingCalculator.BASE_FEE);
     }
 
     @Test
-    void 도서산간은_할증이_붙는다() {
-        Money normal = calculator.feeFor(Money.of(10_000), false);
-        Money island = calculator.feeFor(Money.of(10_000), true);
-
-        assertThat(island.amount()).isGreaterThan(normal.amount());
+    @DisplayName("도서산간 할증은 면제와 무관하게 붙는다")
+    void islandSurchargeSurvivesWaiver() {
+        // 기본 3_000 + 할증 5_000, 면제되면 할증만 남는다
+        assertThat(calculator.feeFor(Money.of(10_000), true)).isEqualTo(Money.of(8_000));
+        assertThat(calculator.feeFor(Money.of(100_000), true)).isEqualTo(Money.of(5_000));
     }
 
     @Test
-    void 무료배송_여부를_알려준다() {
+    @DisplayName("배송비가 0원일 때만 무료배송이다")
+    void freeShippingOnlyWhenFeeIsZero() {
         assertThat(calculator.isFreeShipping(Money.of(100_000), false)).isTrue();
-    }
-
-    @Test
-    void 배송비가_붙으면_무료배송이_아니다() {
         assertThat(calculator.isFreeShipping(Money.of(10_000), false)).isFalse();
+        assertThat(calculator.isFreeShipping(Money.of(100_000), true)).isFalse();
     }
 
     @Test
-    void 기준_금액과_같으면_배송비가_붙는다() {
-        Money fee = calculator.feeFor(ShippingCalculator.FREE_THRESHOLD, false);
-
-        assertThat(fee).isEqualTo(ShippingCalculator.BASE_FEE);
+    @DisplayName("배송 정책값이 정해진 대로 꽂혀 있다")
+    void pinsPolicyConstants() {
+        assertThat(ShippingCalculator.FREE_THRESHOLD).isEqualTo(Money.of(50_000));
+        assertThat(ShippingCalculator.BASE_FEE).isEqualTo(Money.of(3_000));
+        assertThat(ShippingCalculator.ISLAND_SURCHARGE).isEqualTo(Money.of(5_000));
     }
 }
