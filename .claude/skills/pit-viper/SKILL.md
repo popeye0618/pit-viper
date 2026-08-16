@@ -30,7 +30,7 @@ description: 테스트의 구멍을 찾아 메운다. Jacoco 로 미커버 코�
 | `parse_mutations.py [리포트]` | 생존 뮤턴트 목록 |
 | `verdict.py compare <전> <후>` | 킬 판정 + 예산 갱신 + `next_targets`. 종료 코드 1 = 퇴행 |
 | `verdict.py equivalent <id> --reason <사유>` | 동등 뮤턴트를 사유와 함께 닫는다 |
-| `report.py --before <전> --after <후>` | 최종 리포트(마크다운) 조립 |
+| `report.py --before <전> [--scope <범위>]` | 최종 리포트를 `viper/` 에 마크다운으로 쌓는다 |
 | `guard.sh` | 금지된 파일이 바뀌었으면 종료 코드 1 |
 
 ## 절차
@@ -130,12 +130,14 @@ python3 .../verdict.py compare .pit-viper/before.xml build/reports/pitest/mutati
 
 ```bash
 python3 .claude/skills/pit-viper/scripts/report.py \
-    --before .pit-viper/before.xml --after build/reports/pitest/mutations.xml \
-    -o .pit-viper/report.md
+    --before .pit-viper/before.xml --scope "${SCOPE:-전체}"
 ```
 
+프로젝트 최상위의 **`viper/` 디렉터리**에 `pit-viper-YYYYMMDD-HHMMSS.md` 로 쌓인다.
+시각이 파일명에 박혀 있어 여러 번 돌린 기록이 서로 덮이지 않는다. 스크립트가 만든 경로를 그대로 출력한다.
+
 리포트의 숫자와 목록은 전부 `state.json` 과 리포트에서 나온다. **킬 개수를 스스로 세지 않는다.**
-사용자에게는 이 리포트를 그대로 전하고, 예산 소진으로 남은 것이 있으면 그 사실을 함께 알린다.
+사용자에게는 생성된 파일 경로를 알리고, 예산 소진으로 남은 것이 있으면 그 사실을 함께 전한다.
 
 ## 뮤테이터 유형별 킬 전략
 
