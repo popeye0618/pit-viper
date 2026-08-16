@@ -37,4 +37,16 @@ class ShippingCalculatorTest {
     void 무료배송_여부를_알려준다() {
         assertThat(calculator.isFreeShipping(Money.of(100_000), false)).isTrue();
     }
+
+    @Test
+    void 배송비가_붙으면_무료배송이_아니다() {
+        assertThat(calculator.isFreeShipping(Money.of(10_000), false)).isFalse();
+    }
+
+    @Test
+    void 기준_금액과_같으면_배송비가_붙는다() {
+        Money fee = calculator.feeFor(ShippingCalculator.FREE_THRESHOLD, false);
+
+        assertThat(fee).isEqualTo(ShippingCalculator.BASE_FEE);
+    }
 }

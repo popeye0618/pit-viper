@@ -1,6 +1,7 @@
 package com.pitviper.common.vo;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,5 +47,29 @@ class MoneyTest {
     @Test
     void 더_큰_금액을_비교한다() {
         assertThat(Money.of(2_000).isGreaterThan(Money.of(1_000))).isTrue();
+    }
+
+    @Test
+    void 같은_금액은_더_크지_않다() {
+        assertThat(Money.of(1_000).isGreaterThan(Money.of(1_000))).isFalse();
+    }
+
+    @Test
+    void 같은_금액을_빼면_0원이_된다() {
+        Money rest = Money.of(1_000).minus(Money.of(1_000));
+
+        assertThat(rest.amount()).isZero();
+    }
+
+    @Test
+    void 가진_것보다_많이_빼면_예외다() {
+        assertThatThrownBy(() -> Money.of(1_000).minus(Money.of(1_001)))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void 금액이_0원인지_판별한다() {
+        assertThat(Money.ZERO.isZero()).isTrue();
+        assertThat(Money.of(1).isZero()).isFalse();
     }
 }
