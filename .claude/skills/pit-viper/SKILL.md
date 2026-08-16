@@ -31,7 +31,8 @@ description: 테스트의 구멍을 찾아 메운다. Jacoco 로 미커버 코�
 | `verdict.py compare <전> <후>` | 킬 판정 + 예산 갱신 + `next_targets`. 종료 코드 1 = 퇴행 |
 | `verdict.py equivalent <id> --reason <사유>` | 동등 뮤턴트를 사유와 함께 닫는다 |
 | `report.py --before <전> [--scope <범위>]` | 최종 리포트를 `viper/` 에 마크다운으로 쌓는다 |
-| `guard.sh` | 금지된 파일이 바뀌었으면 종료 코드 1 |
+| `guard.sh snapshot` | 루프 시작 시점의 보호 대상 지문을 뜬다 |
+| `guard.sh` | 그 뒤로 바뀌었으면 종료 코드 1 |
 
 ## 절차
 
@@ -43,6 +44,16 @@ SCOPE=$(.claude/skills/pit-viper/scripts/scope.sh main --pitest) || true
 
 출력에는 `com.a.Foo` 와 `com.a.Foo$*` 가 함께 들어간다. 중첩 클래스는 `Outer$Inner` 로 컴파일되므로
 앞엣것만으로는 sealed interface·record 안의 로직을 통째로 놓친다.
+
+그리고 **이 시점에 보호 대상의 지문을 뜬다.**
+
+```bash
+bash .claude/skills/pit-viper/scripts/guard.sh snapshot
+```
+
+판정 기준은 "커밋됐는가"가 아니라 **"이번 실행 중에 바뀌었는가"** 다.
+스킬이 도는 자리는 대개 아직 커밋하지 않은 새 기능 위라, 지문 없이 HEAD 와 비교하면
+에이전트가 건드리지도 않은 사용자의 작업이 전부 위반으로 잡힌다.
 
 종료 코드 3 이면 이 브랜치가 바꾼 `src/main` 클래스가 없다는 뜻이다. **여기서 멈추고 사용자에게 알린다.**
 전체를 스캔하고 싶다면 사용자가 명시적으로 요청해야 한다 — 실전 프로젝트에서 전체 pitest 는 몇십 분이 걸린다.

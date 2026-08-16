@@ -38,6 +38,65 @@
 Jacoco 쪽에서는 아무 문제가 보이지 않는 클래스다. 반대로 `GlobalExceptionHandler`의 미커버 16줄은 pitest 대상에도 없다.
 그래서 둘 다 돌리되, 순서를 둔다.
 
+## 설치
+
+두 가지만 하면 된다. 스크립트는 **파이썬 표준 라이브러리만** 쓰므로 설치할 의존성이 없다.
+
+### 1. 스킬을 놓는다
+
+```bash
+# 이 저장소를 clone 한 곳을 가리키게 한다. 심링크라 스킬을 고치면 바로 반영된다.
+mkdir -p ~/.claude/skills
+ln -sfn "$(pwd)/.claude/skills/pit-viper" ~/.claude/skills/pit-viper
+```
+
+프로젝트 안에서만 쓰려면 `.claude/skills/pit-viper/` 로 복사해도 된다.
+개인 스킬(`~/.claude/skills/`)은 어느 프로젝트에서나 트리거되고, 프로젝트 스킬은 그 저장소에서만 뜬다.
+
+### 2. 소비자 프로젝트의 `build.gradle` 에 신호원 둘을 켠다
+
+이 저장소의 [build.gradle](build.gradle)이 레퍼런스다. 핵심만 옮기면:
+
+```groovy
+plugins {
+    id 'jacoco'
+    id 'info.solidsoft.pitest' version '1.19.0'
+}
+
+dependencies {
+    pitest 'org.pitest:pitest-junit5-plugin:1.2.3'   // pitest 는 JUnit 5 를 이걸로 인식한다
+}
+
+jacocoTestReport {
+    reports { xml.required = true }                  // ⚠️ XML 은 기본으로 꺼져 있다
+}
+
+pitest {
+    // 스킬의 scope.sh 가 "이 브랜치가 바꾼 클래스"만 넣는 자리
+    targetClasses = findProperty('pitScope')?.toString()?.tokenize(',') ?: ['com.example.*']
+
+    // ⚠️ 반드시 명시한다. 안 주면 pitest 가 targetClasses 패턴으로 테스트도 고르기 때문에,
+    //    스코프를 좁히는 순간 돌릴 테스트가 0개가 되어 전부 NO_COVERAGE 로 보고된다.
+    targetTests = ['com.example.*']
+
+    mutators = ['DEFAULTS', 'NEGATE_CONDITIONALS']   // DEFAULTS 에는 조건 반전이 없다
+    outputFormats = ['XML', 'HTML']
+    timestampedReports = false
+    mutationThreshold = 0
+}
+```
+
+`.gitignore` 에 `.pit-viper/` 를 넣는다 (루프 상태 파일). 리포트가 쌓이는 `viper/` 는 취향껏.
+
+### 3. 부른다
+
+```
+테스트 좀 점검해줘
+```
+
+스킬이 브랜치 diff에서 스캔 범위를 잡고, 두 신호를 읽고, 테스트를 쓰고, 재실행 결과로 채점한 뒤
+`viper/pit-viper-<날짜>-<시각>.md` 에 리포트를 남긴다.
+
 ## 설계 원칙
 
 이 프로젝트의 모든 결정은 아래 다섯 가지로 심사한다.
@@ -46,7 +105,7 @@ Jacoco 쪽에서는 아무 문제가 보이지 않는 클래스다. 반대로 `G
 2. **결정적 도구가 할 수 있는 일은 AI에게 시키지 않는다.** 파싱·선별·채점·리포트는 전부 Python 스크립트다. AI는 "테스트 작성"과 "equivalent 판정" 두 지점에만 있다.
 3. **프롬프트는 코드다.** SKILL.md를 고치면 이 프로젝트에 다시 돌려 킬률이 유지되는지 확인한다.
 4. **루프는 수렴해야 한다.** 시도 예산은 지침이 아니라 상태 파일을 관리하는 스크립트가 강제한다.
-5. **에이전트는 `src/main`을 만지지 않는다.** 테스트를 통과시키려 프로덕션 코드를 고치는 것은 실패다. guard 스크립트가 diff를 검사한다.
+5. **에이전트는 `src/main`을 만지지 않는다.** 테스트를 통과시키려 프로덕션 코드를 고치는 것은 실패다. 루프 시작 시점의 지문과 대조해 guard 스크립트가 막는다 — 빌드 파일도 함께 본다.
 
 ## 이 저장소의 구조
 
@@ -61,9 +120,10 @@ build.gradle                     Jacoco + pitest 설정 — 소비자 프로젝�
 │   ├── parse_jacoco.py          jacocoTestReport.xml → 미커버·부분분기 라인 JSON
 │   ├── scope.sh                 브랜치 diff → 이번에 스캔할 클래스 목록
 │   ├── verdict.py               전/후 대조 채점 + 시도 예산 강제 (state.json)
-│   ├── report.py                최종 리포트 조립
-│   └── guard.sh                 src/main·빌드 파일 수정 차단
+│   ├── report.py                viper/ 에 리포트 조립
+│   └── guard.sh                 src/main·빌드 파일 수정 차단 (루프 시작 지문 대비)
 └── tests/                       스크립트 자체 테스트 (프로젝트 테스트와 섞이지 않는다)
+viper/                           실행 리포트가 쌓이는 곳 — pit-viper-<날짜>-<시각>.md
 src/main/java/com/pitviper/
 ├── common/
 │   ├── exception/               ErrorCode · BusinessException · GlobalExceptionHandler
@@ -105,6 +165,30 @@ src/main/java/com/pitviper/
 남은 1개는 **동등 뮤턴트**다 — `DiscountPolicy`의 할인율 상한 비교(`>` ↔ `>=`)인데, 등급 보너스 조합으로 도달 가능한 할인율이
 `{0, 0.05, 0.1, 0.15, 0.2, 0.3}` 뿐이라 상한 `0.25`와 같아지는 입력이 없다. 사유와 함께 기록하고 목표에서 뺐다.
 `src/main`은 한 줄도 수정하지 않았다.
+
+## 다른 프로젝트에 돌려본 기록
+
+통제된 무대(이 저장소)가 아니라 **답을 모르는 실제 프로젝트**에서도 돌려봤다.
+프로덕션 클래스 135개짜리 스프링 프로젝트의 작업 브랜치에서, `scope.sh` 가 잡은 **변경 클래스 4개만** 스캔했다.
+
+| | |
+|---|---|
+| 대상 | 구독 플랜 정책 (sealed interface + record, 테스트 없음) |
+| 스캔 범위 | 변경 클래스 4개 / 전체 135개 |
+| 결과 | 뮤턴트 19개 · **19개 전부 킬** (1회전) |
+| `src/main` | 무수정 (`guard.sh` 통과) |
+
+이 과정에서 실전에서만 드러나는 문제 셋을 찾아 고쳤다 — 어느 것도 이 저장소에서는 나타나지 않았다.
+
+1. **중첩 클래스를 통째로 놓쳤다.** 중첩 클래스는 `Outer$Inner` 로 컴파일되는데 pitest 글롭에서
+   `com.a.Outer` 는 그것을 잡지 못한다. 뮤턴트가 19개가 아니라 7개만 생성됐다.
+   → `scope.sh` 가 `Outer$*` 를 함께 낸다.
+2. **스코프를 좁히면 테스트가 0개가 됐다.** pitest 는 `targetTests` 를 안 주면 `targetClasses` 패턴으로
+   테스트도 고른다. 검증되던 코드가 전부 미커버로 보고돼, 스코프 기능이 단순히 안 되는 게 아니라
+   **에이전트에게 거짓 목표를 주는** 상태였다. → `targetTests` 를 필수 설정으로 문서화.
+3. **guard 가 사용자의 기존 작업을 위반으로 잡았다.** HEAD 와 비교했기 때문인데, 스킬이 도는 자리는
+   대개 아직 커밋하지 않은 새 기능 위다. → 루프 시작 시점에 `guard.sh snapshot` 으로 지문을 뜨고
+   그것과 비교한다. 판정 기준은 "커밋됐는가"가 아니라 **"이번 실행 중에 바뀌었는가"** 다.
 
 ## 기준선
 
@@ -150,4 +234,4 @@ python3 .claude/skills/pit-viper/scripts/report.py --before .pit-viper/before.xm
 - [x] **S3** — `verdict.py` + `guard.sh` (채점자와 안전장치)
 - [x] **S4** — `SKILL.md` 1회전 루프 · **1회전에 구멍 26 → 12 (킬 14, 스코어 66% → 84%)**
 - [x] **S5** — 수렴 루프 · **구멍 26개 중 25개 킬 (96%)** · 3회전 자력 종료
-- [ ] **S6** — 개인 스킬로 승격, 다른 프로젝트에 적용
+- [x] **S6** — 개인 스킬로 승격, 다른 프로젝트에 적용 · **변경 클래스 4개만 스캔해 19/19 킬**

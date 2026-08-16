@@ -50,6 +50,56 @@ class GuardTestCase(unittest.TestCase):
         git(self.dir, "commit", "-q", "-m", "init")
 
 
+class 스냅숏기준(GuardTestCase):
+    """판정 기준은 "이번 실행 중에 바뀌었는가"이지 "커밋됐는가"가 아니다."""
+
+    def test_이미_있던_미커밋_작업은_위반이_아니다(self):
+        """스킬이 도는 자리는 대개 아직 커밋하지 않은 새 기능 위다."""
+        write(self.dir, "src/main/java/com/pitviper/New.java")     # 사용자가 쓰던 새 파일
+        guard(self.dir, "snapshot")                                 # 루프 시작
+
+        code, out, _ = guard(self.dir)
+        self.assertEqual(code, 0)
+        self.assertIn("루프 시작 이후", out)
+
+    def test_스냅숏_이후_수정은_잡는다(self):
+        write(self.dir, "src/main/java/com/pitviper/New.java")
+        guard(self.dir, "snapshot")
+
+        write(self.dir, "src/main/java/com/pitviper/New.java", "// 에이전트가 고쳤다\n")
+
+        code, _, err = guard(self.dir)
+        self.assertEqual(code, EXIT_VIOLATION)
+        self.assertIn("New.java", err)
+
+    def test_스냅숏_이후_추가도_잡는다(self):
+        guard(self.dir, "snapshot")
+        write(self.dir, "src/main/java/com/pitviper/Sneaky.java")
+
+        code, _, err = guard(self.dir)
+        self.assertEqual(code, EXIT_VIOLATION)
+        self.assertIn("Sneaky.java", err)
+
+    def test_스냅숏_이후_삭제도_잡는다(self):
+        guard(self.dir, "snapshot")
+        (Path(self.dir) / "src/main/java/com/pitviper/Money.java").unlink()
+
+        code, _, err = guard(self.dir)
+        self.assertEqual(code, EXIT_VIOLATION)
+        self.assertIn("Money.java", err)
+
+    def test_스냅숏이_있으면_테스트_수정은_여전히_통과한다(self):
+        guard(self.dir, "snapshot")
+        write(self.dir, "src/test/java/com/pitviper/NewTest.java")
+
+        self.assertEqual(guard(self.dir)[0], 0)
+
+    def test_지문_개수를_알려준다(self):
+        code, out, _ = guard(self.dir, "snapshot")
+        self.assertEqual(code, 0)
+        self.assertIn("지문", out)
+
+
 class 허용(GuardTestCase):
 
     def test_아무것도_안_바꾸면_통과한다(self):
