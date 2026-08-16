@@ -46,7 +46,7 @@
 루트가 곧 스프링 프로젝트다. 스킬이 설치된 소비자 프로젝트의 모습을 그대로 보여주기 위해서다.
 
 ```
-build.gradle.kts              Jacoco + pitest 설정 — 소비자 프로젝트가 따라할 레퍼런스
+build.gradle                  Jacoco + pitest 설정 — 소비자 프로젝트가 따라할 레퍼런스
 src/main/java/…/shop/
   domain/                     Money·Grade·Customer·DiscountPolicy·PointPolicy
   service/                    OrderService·ShippingCalculator
