@@ -50,6 +50,11 @@ SCOPE=$(.claude/skills/pit-viper/scripts/scope.sh main --pitest) || true
 python3 .claude/skills/pit-viper/scripts/parse_jacoco.py
 ```
 
+> **리포트가 낡았는지 항상 의심한다.** Gradle 은 태스크를 UP-TO-DATE 로 건너뛴다.
+> `pitest --rerun` 은 pitest 만 강제하므로 **Jacoco 리포트는 이전 실행 그대로 남는다.**
+> 낡은 커버리지를 보고 목표를 고르면 이미 메운 자리를 다시 메운다.
+> 테스트를 고친 뒤에는 두 리포트를 **각각 명시적으로** 다시 만든다.
+
 `uncovered_lines` 는 **아무 테스트도 실행하지 않은 줄**, `partial_lines` 는 **실행은 됐지만 안 가본 분기가 있는 줄**이다.
 뒤엣것이 커버리지 화면에서는 초록불로 보이면서 뮤턴트가 살아남는 자리다.
 
