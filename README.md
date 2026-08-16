@@ -118,14 +118,17 @@ src/main/java/com/pitviper/
 이 상태는 `baseline` 태그에 고정돼 있다. **스킬을 고쳤으면 여기로 되돌려 다시 돌린다.**
 
 ```bash
-git checkout baseline -- src/test          # 약한 테스트로 되돌린다
-./gradlew test jacocoTestReport pitest --rerun-tasks
+rm -rf src/test && git checkout baseline -- src/test    # 약한 테스트로 되돌린다
+./gradlew test jacocoTestReport pitest --rerun-tasks    # 77 · KILLED 51 · 구멍 26 이 나와야 한다
 cp build/reports/pitest/mutations.xml .pit-viper/before.xml
 # ... 스킬 실행 ...
 python3 .claude/skills/pit-viper/scripts/report.py --before .pit-viper/before.xml
 ```
 
-킬률이 **26개 중 16개(60%) 아래로 떨어지면 회귀**다. 원래 테스트로 돌아오려면 `git checkout HEAD -- src/test`.
+> ⚠️ `rm -rf` 를 빼면 안 된다. `git checkout <태그> -- <경로>` 는 **그 태그에 있는 파일만** 되돌리고,
+> 이후에 추가된 테스트 파일은 디스크에 그대로 남는다. 그러면 출발점이 기준선이 아니게 되고 회귀 검증이 무의미해진다.
+
+킬률이 **26개 중 16개(60%) 아래로 떨어지면 회귀**다. 원래 테스트로 돌아오려면 `rm -rf src/test && git checkout HEAD -- src/test`.
 
 생존 뮤턴트 분포:
 
