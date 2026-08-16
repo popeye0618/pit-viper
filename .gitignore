@@ -1,0 +1,18 @@
+# Gradle 산출물
+build/
+.gradle/
+
+# 래퍼 jar 는 반드시 커밋해야 한다.
+# 이게 없으면 clone 받은 사람이 ./gradlew 를 못 돌린다.
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# macOS
+.DS_Store
+
+# 스킬 실행 산출물 (루프 상태는 실행마다 새로 시작한다)
+.pit-viper/

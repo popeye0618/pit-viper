@@ -1,0 +1,102 @@
+// 이 파일은 pit-viper 스킬을 쓰려는 프로젝트가 따라할 레퍼런스이기도 하다.
+// 스킬이 요구하는 것은 딱 두 가지 — Jacoco XML 리포트와 pitest XML 리포트.
+
+plugins {
+    java
+
+    // 커버리지 계측. Gradle 에 내장돼 있어서 버전을 적지 않아도 된다.
+    jacoco
+
+    // Spring Boot 4.x 가 최신이지만 3.5 라인을 쓴다.
+    // 이 프로젝트의 목적은 최신 major 검증이 아니라 스킬을 돌릴 무대를 만드는 것이다.
+    id("org.springframework.boot") version "3.5.16"
+    id("io.spring.dependency-management") version "1.1.7"
+
+    // 뮤테이션 테스팅. 프로덕션 코드를 일부러 변형(뮤턴트)시켜 보고
+    // 그래도 테스트가 안 깨지면 "그 자리는 검증되지 않았다"고 알려준다.
+    id("info.solidsoft.pitest") version "1.19.0"
+}
+
+group = "dev.pitviper"
+version = "0.0.1-SNAPSHOT"
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
+
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    // pitest 는 JUnit 4 시절에 만들어졌다. JUnit 5 테스트를 인식시키려면 이 플러그인이 필요하다.
+    pitest("org.pitest:pitest-junit5-plugin:1.2.3")
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    // 주석이 한국어라 인코딩을 명시하지 않으면 환경에 따라 깨진다.
+    options.encoding = "UTF-8"
+}
+
+tasks.test {
+    useJUnitPlatform()
+
+    // 커버리지 리포트는 테스트가 끝난 뒤에만 의미가 있다.
+    // 이렇게 걸어두면 ./gradlew test 한 번으로 jacoco.xml 까지 나온다.
+    finalizedBy(tasks.jacocoTestReport)
+}
+
+jacoco {
+    toolVersion = "0.8.13"
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+
+    reports {
+        // ⚠️ XML 은 기본으로 꺼져 있다.
+        // HTML 만 켜져 있으면 사람은 볼 수 있지만 스크립트가 읽을 게 없다.
+        // XML = 도구가 읽는 계약, HTML = 사람이 보는 용도.
+        xml.required = true
+        html.required = true
+    }
+}
+
+pitest {
+    pitestVersion = "1.19.1"
+    junit5PluginVersion = "1.2.3"
+
+    // 뮤테이션을 적용할 대상. 로직이 있는 곳만 본다.
+    // 실전에서는 스킬의 scope 스크립트가 여기에 "변경된 클래스"만 넣어 비용을 깎는다.
+    targetClasses = setOf("dev.pitviper.shop.domain.*", "dev.pitviper.shop.service.*")
+
+    // 설정 클래스·DTO 는 로직이 없어 뮤턴트가 의미 없다.
+    excludedClasses = setOf("*.*Config", "*Application", "*.dto.*")
+    excludedMethods = setOf("toString", "hashCode", "equals")
+
+    // @SpringBootTest 같은 무거운 테스트가 섞이면 실행 시간이 폭발한다.
+    excludedGroups = setOf("integration")
+
+    // 로깅 라인에 뮤턴트를 심어봐야 잡을 방법이 없다.
+    avoidCallsTo = setOf("org.slf4j")
+
+    // ⚠️ DEFAULTS 에는 NEGATE_CONDITIONALS 가 들어있지 않다
+    // (RemoveConditional 계열과 반환값 계열로 대체되어 있다).
+    // 조건 반전은 테스트 구멍을 드러내는 대표 유형이라 명시적으로 추가한다.
+    mutators = setOf("DEFAULTS", "NEGATE_CONDITIONALS")
+
+    outputFormats = setOf("XML", "HTML")
+    timestampedReports = false
+
+    // 생존 뮤턴트가 있는 것이 이 프로젝트의 출발점이다.
+    // 임계값을 걸면 빌드가 실패하므로 0 으로 둔다.
+    mutationThreshold = 0
+}
