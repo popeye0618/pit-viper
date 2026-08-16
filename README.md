@@ -50,7 +50,10 @@
 
 ```
 build.gradle                     Jacoco + pitest 설정 — 소비자 프로젝트가 따라할 레퍼런스
-.claude/skills/pit-viper/        스킬 본체 — SKILL.md + scripts/   ※ 아직 미구현
+.claude/skills/pit-viper/        스킬 본체 — 복사하면 그대로 도는 디렉터리
+├── scripts/                     결정적 도구 (파이썬 표준 라이브러리만, 설치 불필요)
+│   └── parse_mutations.py       mutations.xml → 생존 뮤턴트 JSON
+└── tests/                       스크립트 자체 테스트 (프로젝트 테스트와 섞이지 않는다)
 src/main/java/com/pitviper/
 ├── common/
 │   ├── exception/               ErrorCode · BusinessException · GlobalExceptionHandler
@@ -102,7 +105,7 @@ src/main/java/com/pitviper/
 ## 진행 상황
 
 - [x] **S0** — 스프링 프로젝트 + Jacoco/pitest 설정 + 기준선 고정
-- [ ] **S1** — `parse_mutations.py` (뮤테이션 리포트 → 목표 목록)
+- [x] **S1** — `parse_mutations.py` (뮤테이션 리포트 → 목표 목록)
 - [ ] **S2** — `parse_jacoco.py` + `scope.sh` (커버리지 구멍, 변경 클래스 스코프)
 - [ ] **S3** — `verdict.py` + `guard.sh` (채점자와 안전장치)
 - [ ] **S4** — `SKILL.md` 1회전 루프
