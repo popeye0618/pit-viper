@@ -133,11 +133,29 @@ class 출력형식과종료코드(ScopeTestCase):
 
     def test_pitest_형식은_콤마_한_줄이다(self):
         write(self.dir, "src/main/java/com/pitviper/Alpha.java")
-        write(self.dir, "src/main/java/com/pitviper/Bravo.java")
 
         code, out, _ = scope(self.dir, "main", "--pitest")
         self.assertEqual(code, 0)
-        self.assertEqual(out, "com.pitviper.Alpha,com.pitviper.Bravo")
+        self.assertEqual(out, "com.pitviper.Alpha,com.pitviper.Alpha$*")
+
+    def test_pitest_형식은_중첩_클래스_패턴을_함께_낸다(self):
+        """중첩 클래스는 Outer$Inner 로 컴파일된다. 이게 없으면 sealed interface +
+        record 로 짠 코드에서 뮤턴트를 대부분 놓친다 (harucut 실측 7 vs 19)."""
+        write(self.dir, "src/main/java/com/pitviper/Alpha.java")
+        write(self.dir, "src/main/java/com/pitviper/Bravo.java")
+
+        _, out, _ = scope(self.dir, "main", "--pitest")
+        self.assertEqual(
+            out.split(","),
+            ["com.pitviper.Alpha", "com.pitviper.Alpha$*",
+             "com.pitviper.Bravo", "com.pitviper.Bravo$*"],
+        )
+
+    def test_줄_목록에는_중첩_패턴을_섞지_않는다(self):
+        write(self.dir, "src/main/java/com/pitviper/Alpha.java")
+
+        _, out, _ = scope(self.dir)
+        self.assertEqual(out, "com.pitviper.Alpha")
 
     def test_변경이_없으면_종료코드_3(self):
         code, out, err = scope(self.dir)

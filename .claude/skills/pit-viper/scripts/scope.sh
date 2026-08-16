@@ -87,7 +87,13 @@ classes=$(printf '%s\n' "$sources" \
     | sed -e "s|^${SOURCE_ROOT}/||" -e 's|\.java$||' -e 's|/|.|g')
 
 if [ "$format" = "pitest" ]; then
-    printf '%s\n' "$classes" | paste -sd, -
+    # 중첩 클래스는 Outer$Inner 로 컴파일된다. pitest 의 targetClasses 글롭에서
+    # com.a.Outer 는 com.a.Outer$Inner 를 잡지 못하므로 두 패턴을 함께 넣는다.
+    #
+    # 실측(harucut, sealed interface + record): 이 줄이 없으면 뮤턴트 7개,
+    # 있으면 19개. 분기 로직이 전부 중첩 record 안에 있어서 대부분을 놓쳤다.
+    printf '%s\n' "$classes" | awk '{ print $0; print $0 "$*" }' | paste -sd, -
 else
+    # 줄 목록은 사람과 다른 소비자를 위한 것이라 클래스 이름만 낸다.
     printf '%s\n' "$classes"
 fi

@@ -87,6 +87,12 @@ pitest {
     targetClasses = findProperty('pitScope')?.toString()?.tokenize(',')
             ?: ['com.pitviper.common.vo.*', 'com.pitviper.customer.*', 'com.pitviper.order.*']
 
+    // ⚠️ 반드시 명시한다. pitest 는 targetTests 를 안 주면 targetClasses 와 같은 패턴으로
+    // 테스트를 고른다. 그러면 -PpitScope 로 대상을 좁히는 순간 실행할 테스트가 0개가 되고,
+    // 멀쩡히 검증되던 코드가 전부 NO_COVERAGE 로 보고된다.
+    // 좁혀야 하는 것은 "뮤턴트를 심을 대상"이지 "돌릴 테스트"가 아니다.
+    targetTests = ['com.pitviper.*']
+
     // 설정·DTO·컨트롤러·에러코드는 분기가 없어 뮤턴트가 의미 없다.
     excludedClasses = ['*.*Config', '*Application', '*.dto.*', '*.controller.*', '*.exception.*']
     excludedMethods = ['toString', 'hashCode', 'equals']

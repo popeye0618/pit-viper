@@ -41,6 +41,9 @@ description: 테스트의 구멍을 찾아 메운다. Jacoco 로 미커버 코�
 SCOPE=$(.claude/skills/pit-viper/scripts/scope.sh main --pitest) || true
 ```
 
+출력에는 `com.a.Foo` 와 `com.a.Foo$*` 가 함께 들어간다. 중첩 클래스는 `Outer$Inner` 로 컴파일되므로
+앞엣것만으로는 sealed interface·record 안의 로직을 통째로 놓친다.
+
 종료 코드 3 이면 이 브랜치가 바꾼 `src/main` 클래스가 없다는 뜻이다. **여기서 멈추고 사용자에게 알린다.**
 전체를 스캔하고 싶다면 사용자가 명시적으로 요청해야 한다 — 실전 프로젝트에서 전체 pitest 는 몇십 분이 걸린다.
 
@@ -202,6 +205,10 @@ python3 .claude/skills/pit-viper/scripts/verdict.py equivalent \
 
 ## 실패했을 때
 
+- **스코프를 좁혔더니 갑자기 전부 `NO_COVERAGE` 다** → 빌드 설정 문제다. pitest 는 `targetTests` 를 주지 않으면
+  `targetClasses` 와 **같은 패턴으로 테스트를 고른다.** 스코프를 좁히는 순간 돌릴 테스트가 0개가 되어
+  멀쩡히 검증되던 코드가 전부 미커버로 보고된다. 콘솔의 `tests examined` / `Ran N tests` 가 0 이면 이 경우다.
+  `build.gradle` 에 `targetTests = ['<루트패키지>.*']` 를 명시해야 한다. **좁힐 것은 뮤턴트를 심을 대상이지 돌릴 테스트가 아니다.**
 - **테스트를 썼는데 뮤턴트가 안 죽었다** → 정상이다. `verdict.py` 가 시도 횟수를 세고, 예산(기본 3회)을 소진하면 목표에서 자동으로 뺀다. 같은 뮤턴트에 매달리지 않는다.
 - **`gone` 경고가 떴다** → `src/main` 이 바뀌었거나 pitest 범위가 달라졌다. `guard.sh` 로 확인한다.
 - **컴파일이 깨졌다** → 테스트만 되돌린다. `src/main` 은 손대지 않는다.
