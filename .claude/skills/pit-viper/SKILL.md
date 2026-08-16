@@ -30,6 +30,7 @@ description: 테스트의 구멍을 찾아 메운다. Jacoco 로 미커버 코�
 | `parse_mutations.py [리포트]` | 생존 뮤턴트 목록 |
 | `verdict.py compare <전> <후>` | 킬 판정 + 예산 갱신 + `next_targets`. 종료 코드 1 = 퇴행 |
 | `verdict.py equivalent <id> --reason <사유>` | 동등 뮤턴트를 사유와 함께 닫는다 |
+| `report.py --before <전> --after <후>` | 최종 리포트(마크다운) 조립 |
 | `guard.sh` | 금지된 파일이 바뀌었으면 종료 코드 1 |
 
 ## 절차
@@ -101,10 +102,40 @@ bash .claude/skills/pit-viper/scripts/guard.sh
 `verdict.py` 가 종료 코드 1 을 내면 **퇴행이다.** 살아난 뮤턴트를 확인하고, 지웠거나 약화시킨 테스트를 되돌린다.
 `guard.sh` 가 종료 코드 1 을 내면 **금지된 파일을 건드린 것이다.** 되돌린다.
 
-### 5. 보고한다
+### 5. 반복한다
 
-`verdict.py` 의 `summary` 를 그대로 옮긴다. 킬 개수를 스스로 세지 않는다.
-`next_targets` 가 남아 있으면 몇 개가 남았고 각각 몇 번의 시도가 남았는지 알린다.
+**다음 회전의 목표는 직전 `verdict.py` 출력의 `next_targets` 뿐이다.**
+거기 없는 뮤턴트는 이미 죽었거나, equivalent 로 닫혔거나, 예산을 소진한 것이다. 임의로 되살리지 않는다.
+
+`compare` 의 `before` 는 **매 회전 고정**한다 — 루프 시작 시점의 리포트다.
+직전 회전의 리포트로 바꾸면 누적 성과가 사라지고 예산 계산도 어긋난다.
+
+```bash
+# 2회전부터
+./gradlew test jacocoTestReport          # 두 리포트를 각각 명시적으로
+./gradlew pitest -PpitScope="$SCOPE"
+python3 .../verdict.py compare .pit-viper/before.xml build/reports/pitest/mutations.xml
+```
+
+**종료 조건은 셋이고, 먼저 오는 것을 따른다.**
+
+1. `next_targets` 가 비었다 — 목표 소진. **이것이 정상 종료다.**
+2. 회전 수가 상한(기본 5회)에 도달했다.
+3. 연속 두 회전에서 `killed` 가 0이다 — 같은 방법으로는 더 안 죽는다.
+
+**빈손으로 끝나는 것은 실패가 아니다.** 예산을 소진한 뮤턴트만 남았다면 목표가 비고 루프는 즉시 멈춘다.
+남은 뮤턴트를 억지로 죽이려 규칙을 우회하는 것이 실패다.
+
+### 6. 리포트를 낸다
+
+```bash
+python3 .claude/skills/pit-viper/scripts/report.py \
+    --before .pit-viper/before.xml --after build/reports/pitest/mutations.xml \
+    -o .pit-viper/report.md
+```
+
+리포트의 숫자와 목록은 전부 `state.json` 과 리포트에서 나온다. **킬 개수를 스스로 세지 않는다.**
+사용자에게는 이 리포트를 그대로 전하고, 예산 소진으로 남은 것이 있으면 그 사실을 함께 알린다.
 
 ## 뮤테이터 유형별 킬 전략
 

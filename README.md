@@ -61,6 +61,7 @@ build.gradle                     Jacoco + pitest 설정 — 소비자 프로젝�
 │   ├── parse_jacoco.py          jacocoTestReport.xml → 미커버·부분분기 라인 JSON
 │   ├── scope.sh                 브랜치 diff → 이번에 스캔할 클래스 목록
 │   ├── verdict.py               전/후 대조 채점 + 시도 예산 강제 (state.json)
+│   ├── report.py                최종 리포트 조립
 │   └── guard.sh                 src/main·빌드 파일 수정 차단
 └── tests/                       스크립트 자체 테스트 (프로젝트 테스트와 섞이지 않는다)
 src/main/java/com/pitviper/
@@ -90,6 +91,21 @@ src/main/java/com/pitviper/
 - 커버리지 리포트: `build/reports/jacoco/test/html/index.html`
 - 뮤테이션 리포트: `build/reports/pitest/index.html`
 
+## 결과
+
+스킬을 이 저장소에 돌린 결과다. 3회전 만에 자력으로 종료했다.
+
+| 지표 | 전 | 후 |
+|---|---|---|
+| 뮤테이션 스코어 | 66% (51/77) | **99% (76/77)** |
+| 구멍 (생존 + 무커버) | 26 | **1** |
+| 라인 커버리지 | 59/117 (50%) | **74/117 (63%)** |
+| 분기 커버리지 | 28/44 (64%) | **40/44 (91%)** |
+
+남은 1개는 **동등 뮤턴트**다 — `DiscountPolicy`의 할인율 상한 비교(`>` ↔ `>=`)인데, 등급 보너스 조합으로 도달 가능한 할인율이
+`{0, 0.05, 0.1, 0.15, 0.2, 0.3}` 뿐이라 상한 `0.25`와 같아지는 입력이 없다. 사유와 함께 기록하고 목표에서 뺐다.
+`src/main`은 한 줄도 수정하지 않았다.
+
 ## 기준선
 
 스킬을 개발하는 동안 `src/main`은 고정한다. 이 숫자가 곧 회귀 테스트의 기준이다.
@@ -98,6 +114,18 @@ src/main/java/com/pitviper/
 뮤테이션   총 77 · KILLED 51 (66%) · SURVIVED 24 · NO_COVERAGE 2  → 구멍 26개
 커버리지   LINE 59/117 (50%) · BRANCH 28/44 (63%)
 ```
+
+이 상태는 `baseline` 태그에 고정돼 있다. **스킬을 고쳤으면 여기로 되돌려 다시 돌린다.**
+
+```bash
+git checkout baseline -- src/test          # 약한 테스트로 되돌린다
+./gradlew test jacocoTestReport pitest --rerun-tasks
+cp build/reports/pitest/mutations.xml .pit-viper/before.xml
+# ... 스킬 실행 ...
+python3 .claude/skills/pit-viper/scripts/report.py --before .pit-viper/before.xml
+```
+
+킬률이 **26개 중 16개(60%) 아래로 떨어지면 회귀**다. 원래 테스트로 돌아오려면 `git checkout HEAD -- src/test`.
 
 생존 뮤턴트 분포:
 
@@ -118,5 +146,5 @@ src/main/java/com/pitviper/
 - [x] **S2** — `parse_jacoco.py` + `scope.sh` (커버리지 구멍, 변경 클래스 스코프)
 - [x] **S3** — `verdict.py` + `guard.sh` (채점자와 안전장치)
 - [x] **S4** — `SKILL.md` 1회전 루프 · **1회전에 구멍 26 → 12 (킬 14, 스코어 66% → 84%)**
-- [ ] **S5** — 수렴 루프 · **구멍 26개 중 16개 이상 킬**
+- [x] **S5** — 수렴 루프 · **구멍 26개 중 25개 킬 (96%)** · 3회전 자력 종료
 - [ ] **S6** — 개인 스킬로 승격, 다른 프로젝트에 적용
