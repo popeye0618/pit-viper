@@ -11,8 +11,8 @@ sys.path.insert(0, str(SKILL_DIR / "scripts"))
 
 import parse_jacoco  # noqa: E402
 
-REPO_ROOT = SKILL_DIR.parent.parent.parent
-REAL_REPORT = REPO_ROOT / "build" / "reports" / "jacoco" / "test" / "jacocoTestReport.xml"
+# 기준선 리포트를 픽스처로 박아 둔다 (test_parse_mutations.py 와 같은 이유).
+REAL_REPORT = SKILL_DIR / "tests" / "fixtures" / "baseline-jacoco.xml"
 
 
 def line(nr, ci, mi=0, mb=0, cb=0):
@@ -137,8 +137,8 @@ class 입력검증(unittest.TestCase):
                 parse_jacoco.parse_report(path)
 
 
-@unittest.skipUnless(REAL_REPORT.is_file(), f"{REAL_REPORT} 없음 — ./gradlew test 선행 필요")
 class 기준선재현(unittest.TestCase):
+    # 픽스처는 저장소에 커밋돼 있다. 없으면 조용히 건너뛰지 말고 터져야 한다.
     """CLAUDE.md 에 고정한 커버리지 기준선을 파서가 그대로 뽑아내는지 본다."""
 
     @classmethod

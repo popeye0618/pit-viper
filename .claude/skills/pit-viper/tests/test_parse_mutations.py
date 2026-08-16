@@ -17,8 +17,10 @@ sys.path.insert(0, str(SKILL_DIR / "scripts"))
 import parse_mutations  # noqa: E402  (경로를 얹은 뒤여야 import 된다)
 from _fixtures import MUTATOR_PREFIX, mutation, mutations_xml  # noqa: E402
 
-REPO_ROOT = SKILL_DIR.parent.parent.parent
-REAL_REPORT = REPO_ROOT / "build" / "reports" / "pitest" / "mutations.xml"
+# 기준선 리포트를 픽스처로 박아 둔다.
+# build/reports 를 직접 읽으면 루프가 테스트를 강화한 뒤 이 검증이 깨진다 —
+# 실제로 S5 에서 깨졌다. 픽스처로 두면 clone 직후 빌드 없이도 돈다.
+REAL_REPORT = SKILL_DIR / "tests" / "fixtures" / "baseline-mutations.xml"
 
 
 def parse(*mutations):
@@ -161,8 +163,8 @@ class 출력계약(unittest.TestCase):
         )
 
 
-@unittest.skipUnless(REAL_REPORT.is_file(), f"{REAL_REPORT} 없음 — ./gradlew pitest 선행 필요")
 class 기준선재현(unittest.TestCase):
+    # 픽스처는 저장소에 커밋돼 있다. 없으면 조용히 건너뛰지 말고 터져야 한다.
     """CLAUDE.md 에 고정한 기준선을 파서가 그대로 뽑아내는지 본다."""
 
     @classmethod
