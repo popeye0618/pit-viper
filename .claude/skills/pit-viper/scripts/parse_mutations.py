@@ -115,8 +115,13 @@ def build_id(mutated_class, method, line, mutator, indexes):
     return f"{mutated_class}#{method}:{line}:{mutator}:{joined}"
 
 
-def parse_report(path):
-    """mutations.xml 을 읽어 {report, summary, survivors} 를 돌려준다."""
+def parse_report(path, include_all=False):
+    """mutations.xml 을 읽어 {report, summary, survivors} 를 돌려준다.
+
+    include_all=True 면 잡힌 것까지 포함한 전체 목록을 `all` 로 함께 준다.
+    verdict.py 가 '사라진 뮤턴트'와 '다시 살아난 뮤턴트'를 알아내려면 전체 id 집합이 필요한데,
+    에이전트가 읽는 CLI 출력에는 77개 전부를 실을 이유가 없어 기본값은 꺼 둔다.
+    """
     path = Path(path)
     if not path.is_file():
         raise MutationReportError(f"리포트가 없다: {path} — 먼저 ./gradlew pitest 를 돌린다")
@@ -128,6 +133,7 @@ def parse_report(path):
 
     counts = {}
     survivors = []
+    every = []
     short_name_origins = {}
     seen_ids = set()
     total = killed = excluded = 0
@@ -135,6 +141,7 @@ def parse_report(path):
     for node in root.findall("mutation"):
         mutant = _read_mutation(node, short_name_origins)
         total += 1
+        every.append(mutant)
 
         if mutant["id"] in seen_ids:
             raise MutationReportError(
@@ -154,10 +161,12 @@ def parse_report(path):
             survivors.append(mutant)
 
     # 출력이 매번 같은 순서여야 diff 가 감사 로그 역할을 한다.
-    survivors.sort(key=lambda m: (m["class"], m["line"], m["mutator"], m["indexes"]))
+    order = lambda m: (m["class"], m["line"], m["mutator"], m["indexes"])  # noqa: E731
+    survivors.sort(key=order)
+    every.sort(key=order)
 
     scored = total - excluded
-    return {
+    result = {
         "report": str(path),
         "summary": {
             "total": total,
@@ -171,6 +180,9 @@ def parse_report(path):
         },
         "survivors": survivors,
     }
+    if include_all:
+        result["all"] = every
+    return result
 
 
 def main(argv=None):

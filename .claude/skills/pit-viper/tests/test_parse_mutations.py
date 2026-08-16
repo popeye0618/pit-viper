@@ -15,36 +15,17 @@ SKILL_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(SKILL_DIR / "scripts"))
 
 import parse_mutations  # noqa: E402  (경로를 얹은 뒤여야 import 된다)
+from _fixtures import MUTATOR_PREFIX, mutation, mutations_xml  # noqa: E402
 
 REPO_ROOT = SKILL_DIR.parent.parent.parent
 REAL_REPORT = REPO_ROOT / "build" / "reports" / "pitest" / "mutations.xml"
 
-MUTATOR_PREFIX = "org.pitest.mutationtest.engine.gregor.mutators"
-
-
-def mutation(status, cls="com.pitviper.Foo", method="bar", line=10,
-             mutator=f"{MUTATOR_PREFIX}.NegateConditionalsMutator", indexes=(5,),
-             description="negated conditional", tests_run=1):
-    index_xml = "".join(f"<index>{i}</index>" for i in indexes)
-    return (
-        f"<mutation detected='false' status='{status}' numberOfTestsRun='{tests_run}'>"
-        f"<sourceFile>Foo.java</sourceFile>"
-        f"<mutatedClass>{cls}</mutatedClass>"
-        f"<mutatedMethod>{method}</mutatedMethod>"
-        f"<lineNumber>{line}</lineNumber>"
-        f"<mutator>{mutator}</mutator>"
-        f"<indexes>{index_xml}</indexes>"
-        f"<description>{description}</description>"
-        f"</mutation>"
-    )
-
 
 def parse(*mutations):
     """<mutation> 조각들을 임시 파일에 담아 파싱한다."""
-    xml = "<?xml version='1.0' encoding='UTF-8'?>\n<mutations>" + "".join(mutations) + "</mutations>"
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / "mutations.xml"
-        path.write_text(xml, encoding="utf-8")
+        path.write_text(mutations_xml(*mutations), encoding="utf-8")
         return parse_mutations.parse_report(path)
 
 
