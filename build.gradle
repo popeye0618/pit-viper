@@ -80,8 +80,12 @@ pitest {
     junit5PluginVersion = '1.2.3'
 
     // 뮤테이션을 적용할 대상. 값 객체와 업무 규칙이 있는 곳만 본다.
-    // 실전에서는 스킬의 scope 스크립트가 여기에 "변경된 클래스"만 넣어 비용을 깎는다.
-    targetClasses = ['com.pitviper.common.vo.*', 'com.pitviper.customer.*', 'com.pitviper.order.*']
+    //
+    // -PpitScope 를 주면 그 목록으로 덮어쓴다. 스킬의 scope.sh 가 "이 브랜치가 바꾼 클래스"만
+    // 뽑아 넣는 자리다. 안 주면 아래 기본값이 그대로 쓰여 기준선이 흔들리지 않는다.
+    //   ./gradlew pitest -PpitScope=$(.claude/skills/pit-viper/scripts/scope.sh main --pitest)
+    targetClasses = findProperty('pitScope')?.toString()?.tokenize(',')
+            ?: ['com.pitviper.common.vo.*', 'com.pitviper.customer.*', 'com.pitviper.order.*']
 
     // 설정·DTO·컨트롤러·에러코드는 분기가 없어 뮤턴트가 의미 없다.
     excludedClasses = ['*.*Config', '*Application', '*.dto.*', '*.controller.*', '*.exception.*']
