@@ -58,7 +58,9 @@ build.gradle                     Jacoco + pitest 설정 — 소비자 프로젝�
 ├── scripts/                     결정적 도구 (파이썬 표준 라이브러리만, 설치 불필요)
 │   ├── parse_mutations.py       mutations.xml → 생존 뮤턴트 JSON
 │   ├── parse_jacoco.py          jacocoTestReport.xml → 미커버·부분분기 라인 JSON
-│   └── scope.sh                 브랜치 diff → 이번에 스캔할 클래스 목록
+│   ├── scope.sh                 브랜치 diff → 이번에 스캔할 클래스 목록
+│   ├── verdict.py               전/후 대조 채점 + 시도 예산 강제 (state.json)
+│   └── guard.sh                 src/main·빌드 파일 수정 차단
 └── tests/                       스크립트 자체 테스트 (프로젝트 테스트와 섞이지 않는다)
 src/main/java/com/pitviper/
 ├── common/
@@ -113,7 +115,7 @@ src/main/java/com/pitviper/
 - [x] **S0** — 스프링 프로젝트 + Jacoco/pitest 설정 + 기준선 고정
 - [x] **S1** — `parse_mutations.py` (뮤테이션 리포트 → 목표 목록)
 - [x] **S2** — `parse_jacoco.py` + `scope.sh` (커버리지 구멍, 변경 클래스 스코프)
-- [ ] **S3** — `verdict.py` + `guard.sh` (채점자와 안전장치)
+- [x] **S3** — `verdict.py` + `guard.sh` (채점자와 안전장치)
 - [ ] **S4** — `SKILL.md` 1회전 루프
 - [ ] **S5** — 수렴 루프 · **구멍 26개 중 16개 이상 킬**
 - [ ] **S6** — 개인 스킬로 승격, 다른 프로젝트에 적용
