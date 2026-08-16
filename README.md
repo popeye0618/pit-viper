@@ -10,15 +10,18 @@
 이 저장소의 스프링 프로젝트를 측정하면 이렇게 나온다.
 
 ```
-라인 커버리지  76%   ← 나쁘지 않아 보인다
-뮤테이션 스코어 67%   ← 78개 중 26곳은 코드를 바꿔도 테스트가 안 깨진다
+라인 커버리지  50%   ← 테스트가 아예 없는 코드가 있다
+뮤테이션 스코어 66%   ← 77개 중 26곳은 코드를 바꿔도 테스트가 안 깨진다
 ```
 
-커버리지는 **"이 줄이 실행됐는가"**만 본다. 실행됐지만 아무것도 단언하지 않는 테스트도 커버리지는 올라간다.
+두 숫자는 **서로 다른 문제**를 말한다.
+
+커버리지는 "이 줄이 실행됐는가"만 본다. 실행됐지만 아무것도 단언하지 않는 테스트도 커버리지는 올라간다.
 뮤테이션 테스팅은 프로덕션 코드를 일부러 변형(뮤턴트)시켜 보고, **그래도 테스트가 통과하면 그 자리는 검증되지 않은 것**이라고 알려준다.
 
 실제로 이 프로젝트의 `PointPolicy` 한 곳만 봐도 9개의 뮤턴트가 살아있다.
 적립 하한선을 `<` 에서 `<=` 로 바꾸든, VIP 배수 분기를 통째로 지우든 테스트는 초록불이다.
+뮤테이션 대상 클래스만 따지면 라인 커버리지가 **90%**인데도 그렇다.
 
 ## 접근
 
@@ -46,14 +49,25 @@
 루트가 곧 스프링 프로젝트다. 스킬이 설치된 소비자 프로젝트의 모습을 그대로 보여주기 위해서다.
 
 ```
-build.gradle                  Jacoco + pitest 설정 — 소비자 프로젝트가 따라할 레퍼런스
-src/main/java/…/shop/
-  domain/                     Money·Grade·Customer·DiscountPolicy·PointPolicy
-  service/                    OrderService·ShippingCalculator
-  web/                        주문 견적 API
-src/test/                     의도적으로 약한 테스트 (구멍이 살아있는 출발점)
-.claude/skills/pit-viper/     스킬 본체 — SKILL.md + scripts/   ※ 아직 미구현
+build.gradle                     Jacoco + pitest 설정 — 소비자 프로젝트가 따라할 레퍼런스
+.claude/skills/pit-viper/        스킬 본체 — SKILL.md + scripts/   ※ 아직 미구현
+src/main/java/com/pitviper/
+├── common/
+│   ├── exception/               ErrorCode · BusinessException · GlobalExceptionHandler
+│   ├── response/                Response 봉투
+│   └── vo/                      Money
+├── customer/
+│   ├── entity/                  Customer
+│   └── enums/                   Grade
+└── order/
+    ├── controller/              견적 API
+    ├── service/                 OrderService
+    ├── policy/                  DiscountPolicy · PointPolicy · ShippingCalculator
+    ├── dto/                     QuoteRequest · QuoteResponse
+    └── exception/               OrderErrorCode
 ```
+
+`src/test`는 같은 패키지 구조를 그대로 따라간다. 테스트는 해피 패스만 덮은 상태로 두었다 — **이 구멍이 스킬의 목표다.**
 
 ## 직접 돌려보기
 
@@ -69,8 +83,8 @@ src/test/                     의도적으로 약한 테스트 (구멍이 살아
 스킬을 개발하는 동안 `src/main`은 고정한다. 이 숫자가 곧 회귀 테스트의 기준이다.
 
 ```
-뮤테이션   총 78 · KILLED 52 (67%) · SURVIVED 24 · NO_COVERAGE 2  → 구멍 26개
-커버리지   LINE 69/90 (76%) · BRANCH 28/44 (63%)
+뮤테이션   총 77 · KILLED 51 (66%) · SURVIVED 24 · NO_COVERAGE 2  → 구멍 26개
+커버리지   LINE 59/117 (50%) · BRANCH 28/44 (63%)
 ```
 
 생존 뮤턴트 분포:

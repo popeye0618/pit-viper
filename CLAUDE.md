@@ -89,8 +89,8 @@
 ## 기준선 (S0에서 고정 — 스킬 개발 중에는 `src/main`을 건드리지 않는다)
 
 ```
-뮤테이션   총 78 · KILLED 52 (67%) · SURVIVED 24 · NO_COVERAGE 2  → 구멍 26개
-커버리지   LINE 69/90 (76%) · BRANCH 28/44 (63%)
+뮤테이션   총 77 · KILLED 51 (66%) · SURVIVED 24 · NO_COVERAGE 2  → 구멍 26개
+커버리지   LINE 59/117 (50%) · BRANCH 28/44 (63%)
 ```
 
 **이 숫자가 스킬의 회귀 테스트다.** SKILL.md나 스크립트를 고치면 다시 측정해 킬률이 떨어지지 않았는지 확인한다.
@@ -99,6 +99,22 @@
 ---
 
 ## 코드 컨벤션
+
+### 스프링 프로젝트 (`src/`)
+
+사용자의 다른 프로젝트(`~/Documents/harucut`)와 같은 구조를 쓴다. 새 코드는 이 규칙을 따른다.
+
+- **패키지는 feature-first**: `com.pitviper.<기능>.<계층>` — 계층 먼저가 아니라 기능 먼저다
+  (`order/controller`, `order/service`, `order/policy`, `order/dto`, `order/exception`)
+- 공통 코드는 `common/`에 — `exception`(ErrorCode·BusinessException·GlobalExceptionHandler), `response`(Response 봉투), `vo`(값 객체)
+- **응답은 `Response<T>` 봉투로 감싼다** — `Response.ok(data)` / `Response.error(errorCode)`
+- **업무 규칙 위반은 `BusinessException`** + 기능별 `ErrorCode` enum (`ORDER-001` 형식). 타입 불변식 위반은 `IllegalArgumentException`으로 두고 핸들러가 받는다
+- 예외 처리는 컨트롤러가 아니라 `GlobalExceptionHandler`에 모은다
+- **Lombok을 쓴다** — 생성자 주입은 `@RequiredArgsConstructor`, 접근자는 `@Getter`, 로깅은 `@Slf4j`
+- `src/test`는 `src/main`의 패키지 구조를 그대로 따라간다
+- ErrorCode 메시지는 영어, 주석은 한국어
+
+### 공통
 
 - 주석·docstring은 **한국어**로 쓴다
 - 주석은 "무엇을"이 아니라 **"왜"**를 적는다. 코드를 읽으면 아는 것은 쓰지 않는다

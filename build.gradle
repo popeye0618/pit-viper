@@ -17,8 +17,9 @@ plugins {
     id 'info.solidsoft.pitest' version '1.19.0'
 }
 
-group = 'dev.pitviper'
+group = 'com'
 version = '0.0.1-SNAPSHOT'
+description = 'pit-viper'
 
 java {
     toolchain {
@@ -33,8 +34,12 @@ repositories {
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     // pitest 는 JUnit 4 시절에 만들어졌다. JUnit 5 테스트를 인식시키려면 이 플러그인이 필요하다.
@@ -46,7 +51,7 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
 
-test {
+tasks.named('test') {
     useJUnitPlatform()
 
     // 커버리지 리포트는 테스트가 끝난 뒤에만 의미가 있다.
@@ -74,12 +79,12 @@ pitest {
     pitestVersion = '1.19.1'
     junit5PluginVersion = '1.2.3'
 
-    // 뮤테이션을 적용할 대상. 로직이 있는 곳만 본다.
+    // 뮤테이션을 적용할 대상. 값 객체와 업무 규칙이 있는 곳만 본다.
     // 실전에서는 스킬의 scope 스크립트가 여기에 "변경된 클래스"만 넣어 비용을 깎는다.
-    targetClasses = ['dev.pitviper.shop.domain.*', 'dev.pitviper.shop.service.*']
+    targetClasses = ['com.pitviper.common.vo.*', 'com.pitviper.customer.*', 'com.pitviper.order.*']
 
-    // 설정 클래스·DTO 는 로직이 없어 뮤턴트가 의미 없다.
-    excludedClasses = ['*.*Config', '*Application', '*.dto.*']
+    // 설정·DTO·컨트롤러·에러코드는 분기가 없어 뮤턴트가 의미 없다.
+    excludedClasses = ['*.*Config', '*Application', '*.dto.*', '*.controller.*', '*.exception.*']
     excludedMethods = ['toString', 'hashCode', 'equals']
 
     // @SpringBootTest 같은 무거운 테스트가 섞이면 실행 시간이 폭발한다.
