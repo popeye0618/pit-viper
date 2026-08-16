@@ -55,6 +55,7 @@ Jacoco 쪽에서는 아무 문제가 보이지 않는 클래스다. 반대로 `G
 ```
 build.gradle                     Jacoco + pitest 설정 — 소비자 프로젝트가 따라할 레퍼런스
 .claude/skills/pit-viper/        스킬 본체 — 복사하면 그대로 도는 디렉터리
+├── SKILL.md                     에이전트가 따르는 절차와 불변 규칙
 ├── scripts/                     결정적 도구 (파이썬 표준 라이브러리만, 설치 불필요)
 │   ├── parse_mutations.py       mutations.xml → 생존 뮤턴트 JSON
 │   ├── parse_jacoco.py          jacocoTestReport.xml → 미커버·부분분기 라인 JSON
@@ -116,6 +117,6 @@ src/main/java/com/pitviper/
 - [x] **S1** — `parse_mutations.py` (뮤테이션 리포트 → 목표 목록)
 - [x] **S2** — `parse_jacoco.py` + `scope.sh` (커버리지 구멍, 변경 클래스 스코프)
 - [x] **S3** — `verdict.py` + `guard.sh` (채점자와 안전장치)
-- [ ] **S4** — `SKILL.md` 1회전 루프
+- [x] **S4** — `SKILL.md` 1회전 루프 · **1회전에 구멍 26 → 12 (킬 14, 스코어 66% → 84%)**
 - [ ] **S5** — 수렴 루프 · **구멍 26개 중 16개 이상 킬**
 - [ ] **S6** — 개인 스킬로 승격, 다른 프로젝트에 적용
